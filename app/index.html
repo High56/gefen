@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#4d6a2b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="גפן">
+<title>גפן · הפניות</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="../logo.jpg">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700&family=Rubik:wght@500;700&display=swap">
+<link rel="stylesheet" href="../style.css">
+<style>
+.tabs { grid-template-columns: repeat(2, 1fr); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { border: 1.5px solid var(--line); background: var(--surface); border-radius: 999px; padding: 7px 13px; font-size: 14.5px; font-weight: 500; }
+.chip[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.verdict.live, .pill.live { background: var(--accent-soft); color: var(--ink); }
+.pill.todo { background: var(--wait-soft); color: var(--gold); }
+.todo { margin: 0; font-weight: 700; color: var(--gold); font-size: 15px; }
+.sentline { margin: 0; font-size: 15px; font-weight: 500; color: var(--accent); }
+button.item { width: 100%; background: none; border: 0; border-top: 1px solid var(--line); text-align: start; }
+button.item[aria-current="true"] { background: var(--accent-soft); border-radius: 10px; border-top-color: transparent; border-inline-start: 4px solid var(--accent); padding-inline-start: 10px; }
+.empty { text-align: center; padding: 14px 6px; color: var(--muted); }
+.empty b { display: block; font-family: var(--font-display); font-size: 18px; color: var(--ink); }
+.status { text-align: center; font-size: 13px; color: var(--muted); margin: 0; }
+.status.bad { color: var(--pink); }
+.wa { background: #1f7a3a; color: #fff; }
+.btn.small { padding: 9px 12px; font-size: 14.5px; }
+dd a { color: var(--accent); }
+.tip { background: var(--accent-soft); border-radius: 12px; padding: 10px 14px; font-size: 14.5px; margin: 0; display: flex; gap: 8px; align-items: flex-start; }
+.tip span { flex: 1; }
+.tip button { background: none; border: 0; color: var(--muted); font-size: 18px; line-height: 1; padding: 2px 4px; }
+#gate .txt { margin-top: 4px; }
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div class="wrap">
+    <div class="brand">
+      <img src="../logo.jpg" alt="הלוגו של גפן">
+      <div class="name">גפן ארגון וסידור בתים</div>
+    </div>
+    <div class="tabs" role="tablist" id="tabs" hidden>
+      <button class="tab" role="tab" id="tab-leads" data-view="leads" aria-selected="true">הפניות</button>
+      <button class="tab" role="tab" id="tab-quote" data-view="quote" aria-selected="false">הצעת מחיר</button>
+    </div>
+  </div>
+</div>
+
+<main class="wrap">
+
+  <section id="gate" hidden>
+    <div class="card">
+      <h3 id="gate-title">כניסה</h3>
+      <p class="sub" id="gate-text">כתבי את קוד הכניסה שקיבלת.</p>
+      <form id="gate-form">
+        <input class="txt" id="gate-key" autocomplete="off" aria-label="קוד כניסה" placeholder="קוד כניסה">
+        <div class="row" style="margin-top:10px"><button class="btn" type="submit">כניסה</button></div>
+      </form>
+    </div>
+  </section>
+
+  <section id="view-leads" hidden>
+    <p class="tip" id="install" hidden><span>טיפ: אפשר להוסיף את הדף הזה למסך הבית, ואז הוא נפתח כמו אפליקציה. באייפון: כפתור השיתוף ואז "הוספה למסך הבית".</span><button type="button" id="install-x" aria-label="לסגור">×</button></p>
+    <div class="chips" id="filters" role="group" aria-label="סינון"></div>
+    <div class="card" id="lead-card" aria-live="polite"></div>
+    <div class="card">
+      <div class="list" id="list"></div>
+    </div>
+    <p class="status" id="net"></p>
+  </section>
+
+  <section id="view-quote" hidden>
+    <div>
+      <h2>הצעת מחיר</h2>
+      <p class="sub">בוחרים לקוח, ממלאים ארבעה דברים, ושולחים בוואטסאפ.</p>
+    </div>
+    <div class="card">
+      <div class="head"><h3>למי לשלוח?</h3><small id="pick-n"></small></div>
+      <div class="list" id="pick"></div>
+    </div>
+    <div class="card">
+      <div class="form">
+        <div class="field"><label id="l-team">נשות צוות</label>
+          <div class="stepper" aria-labelledby="l-team"><button type="button" data-step="team" data-d="1" aria-label="להוסיף אשת צוות">+</button><output id="q-team">2</output><button type="button" data-step="team" data-d="-1" aria-label="להוריד אשת צוות">−</button></div>
+        </div>
+        <div class="field"><label id="l-hours">שעות</label>
+          <div class="stepper" aria-labelledby="l-hours"><button type="button" data-step="hours" data-d="1" aria-label="להוסיף שעה">+</button><output id="q-hours">5</output><button type="button" data-step="hours" data-d="-1" aria-label="להוריד שעה">−</button></div>
+        </div>
+        <div class="field"><label for="q-date">תאריך</label><input id="q-date" type="date"></div>
+        <div class="field"><label for="q-rate">מחיר לשעה (₪)</label><input id="q-rate" type="number" inputmode="numeric" min="0" step="5" placeholder="לשעה לאשת צוות"></div>
+      </div>
+    </div>
+    <div class="quote">
+      <div class="quote-head">
+        <img src="../logo.jpg" alt="">
+        <div><b>הצעת מחיר</b><span>גפן ארגון וסידור בתים</span></div>
+      </div>
+      <div class="quote-body">
+        <div class="qline"><span>עבור</span><span id="o-name"></span></div>
+        <div class="qline"><span>שירות</span><span id="o-service"></span></div>
+        <div class="qline"><span>תאריך</span><span id="o-date"></span></div>
+        <div class="qline"><span>צוות</span><span id="o-team"></span></div>
+        <div class="total"><span>סך הכול</span><b id="o-total"></b></div>
+        <p class="terms">מינימום 5 שעות. התשלום בסיום העבודה.</p>
+      </div>
+    </div>
+    <div class="row"><a class="btn wa" id="send-quote" target="_blank" rel="noopener" role="button">לשלוח בוואטסאפ</a></div>
+    <p class="note" id="sent" aria-live="polite"></p>
+  </section>
+
+</main>
+
+<script src="../config.js"></script>
+<script>
+(function () {
+  var C = window.GEFEN || {};
+  var $ = function (s) { return document.querySelector(s); };
+  var $$ = function (s) { return Array.prototype.slice.call(document.querySelectorAll(s)); };
+  var KEYK = 'gefen-owner-key', RATEK = 'gefen-rate', TIPK = 'gefen-install-tip';
+  var DAY = 864e5;
+
+  /* The entry code comes in the link (?k=...) and is remembered on this phone. */
+  var params = new URLSearchParams(location.search);
+  var key = params.get('k') || '';
+  try { if (key) localStorage.setItem(KEYK, key); else key = localStorage.getItem(KEYK) || ''; } catch (e) {}
+
+  var leads = [], byId = {}, sel = null, view = 'leads', filter = 'open', loading = false;
+
+  /* ---------- talking to the sheet ---------- */
+  function get(q) { return fetch(C.api + '?' + new URLSearchParams(q)).then(function (r) { return r.json(); }); }
+  function post(o) { o.key = key; return fetch(C.api, { method: 'POST', body: JSON.stringify(o) }).then(function (r) { return r.json(); }); }
+  function net(t, bad) { $('#net').textContent = t; $('#net').classList.toggle('bad', !!bad); }
+  function clock(t) { try { return new Date(t).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }); } catch (e) { return ''; } }
+  function load() {
+    if (!C.api || !key || loading) return;
+    loading = true;
+    get({ action: 'list', key: key }).then(function (j) {
+      if (!j || !j.ok) {
+        if (j && j.error === 'key') { gate('bad'); return; }
+        throw new Error('list');
+      }
+      leads = j.leads || [];
+      byId = {}; leads.forEach(function (L) { byId[L.id] = L; });
+      leads.sort(function (a, b) { return (b.created || 0) - (a.created || 0); });
+      if (sel && !byId[sel]) sel = null;
+      if (!sel && leads.length) sel = leads[0].id;
+      net('עודכן ב־' + clock(Date.now()) + '. מתעדכן לבד.');
+      showApp(); render();
+    }).catch(function () {
+      net('אין חיבור כרגע. מנסה שוב…', true);
+      if (!$('#gate').hidden && $('#gate-form').hidden) $('#gate-text').textContent = 'אין חיבור כרגע. מנסה שוב…';
+    }).then(function () { loading = false; });
+  }
+
+  /* ---------- gate ---------- */
+  function gate(why) {
+    $('#gate').hidden = false; $('#tabs').hidden = true; $('#view-leads').hidden = true; $('#view-quote').hidden = true;
+    if (why === 'api') {
+      $('#gate-title').textContent = 'עוד רגע מוכן';
+      $('#gate-text').textContent = 'האפליקציה עוד לא מחוברת לגיליון של הפניות.';
+      $('#gate-form').hidden = true;
+    } else {
+      $('#gate-title').textContent = 'כניסה';
+      $('#gate-text').textContent = why === 'bad' ? 'הקוד לא נכון. אפשר לבדוק ולנסות שוב.' : 'כתבי את קוד הכניסה שקיבלת.';
+      $('#gate-form').hidden = false;
+    }
+  }
+  $('#gate-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    key = $('#gate-key').value.trim();
+    try { localStorage.setItem(KEYK, key); } catch (x) {}
+    load();
+  });
+  function showApp() {
+    if (!$('#gate').hidden) { $('#gate').hidden = true; $('#tabs').hidden = false; show(view); }
+  }
+
+  /* ---------- tabs ---------- */
+  function show(v) {
+    view = v;
+    ['leads', 'quote'].forEach(function (x) {
+      $('#view-' + x).hidden = x !== v;
+      $('#tab-' + x).setAttribute('aria-selected', x === v ? 'true' : 'false');
+    });
+    render(); window.scrollTo(0, 0);
+  }
+  $$('.tab').forEach(function (t) { t.addEventListener('click', function () { show(t.dataset.view); }); });
+
+  /* ---------- reading a lead ---------- */
+  var FAR = /חיפה|קריות|קריית (ביאליק|מוצקין|אתא|ים|שמונה|טבעון)|נהרי|עכו|כרמיאל|טבריה|צפת|עפולה|נצרת|יקנעם|גליל|גולן/;
+  function first(n) { return String(n || '').trim().split(/\s+/)[0]; }
+  function rems(L, kind) { return (L.reminders || []).filter(function (r) { return r.kind === kind; }).length; }
+  function ago(t) {
+    if (!t) return '';
+    var d = Date.now() - t, m = Math.round(d / 60000);
+    if (m < 1) return 'עכשיו';
+    if (m < 60) return 'לפני ' + m + ' דק׳';
+    var a = new Date(t), today = new Date(); today.setHours(0, 0, 0, 0);
+    if (a >= today) return 'היום ' + clock(t);
+    if (a >= today - DAY) return 'אתמול ' + clock(t);
+    return a.getDate() + '.' + (a.getMonth() + 1) + ' ' + clock(t);
+  }
+  function info(L) {
+    if (L.status === 'won') return { cat: 'closed', status: 'ok', title: 'נסגרה עבודה ✓', pill: 'נסגרה ✓', reason: '' };
+    if (L.status === 'lost') return { cat: 'closed', status: 'no', title: 'לא רלוונטי', pill: 'לא רלוונטי', reason: '' };
+    var extra = (L.materials ? ' רוצים גם הצעה לחומרי אריזה.' : '') + (L.wantsCall ? ' ביקשו שתתקשרי.' : '');
+    var todo = L.wantsCall && !L.quote ? 'ביקשו שיחה' : '';
+    var age = Date.now() - (L.created || 0);
+    if (L.done && !L.video && !L.quote) {
+      var n = rems(L, 'video');
+      if ((n === 0 && age > DAY) || (n === 1 && age > 3 * DAY)) todo = 'תזכורת לסרטון';
+    }
+    if (L.quote && L.quote.sentAt) {
+      var k = rems(L, 'quote'), since = Date.now() - L.quote.sentAt;
+      if ((k === 0 && since > 2 * DAY) || (k === 1 && since > 7 * DAY)) todo = 'לשאול על ההצעה';
+    }
+    if (!L.done) {
+      if (Date.now() - (L.updated || 0) < 10 * 60000) return { cat: 'open', status: 'live', title: 'עונים עכשיו…', pill: 'עונים עכשיו', reason: 'הפרטים מתמלאים לבד.' + extra, todo: '' };
+      return { cat: 'open', status: L.phone ? 'wait' : 'no', title: 'לא סיימו את השאלות', pill: 'לא סיימו',
+        reason: (L.phone ? 'השאירו טלפון ועצרו באמצע.' : 'עצרו לפני שהשאירו טלפון.') + extra, todo: todo };
+    }
+    if (L.quote) return { cat: 'open', status: 'ok', title: 'נשלחה הצעת מחיר', pill: 'נשלחה הצעה', reason: 'ההצעה נשלחה ' + ago(L.quote.sentAt) + '.' + extra, todo: todo };
+    var s;
+    if (FAR.test(L.city || '')) s = { status: 'wait', reason: 'יש כאן עיר מחוץ לאזורים שלך. כדאי לבדוק לפני שמתקשרים.' };
+    else if (!L.video) s = { status: 'wait', reason: L.videoOpened ? 'פתחו את הוואטסאפ לשליחת סרטון. כדאי לבדוק אם הגיע.' : 'עוד לא שלחו סרטון.' };
+    else if (L.whenKey === 'later') s = { status: 'wait', reason: 'שלחו סרטון, אבל עוד אין תאריך.' };
+    else {
+      s = { status: 'ok', reason: L.whenKey === 'talk' ? 'שלחו סרטון ורוצים לדבר על התאריך.' : 'שלחו סרטון, יש תאריך, והם באזור שלך.' };
+      if (L.priceKey === 'question') s.reason += ' יש להם שאלה על המחיר.';
+    }
+    var T = { ok: 'כדאי להתקשר', wait: 'לחכות', no: 'לא מתאים' };
+    return { cat: 'open', status: s.status, title: T[s.status], pill: T[s.status], reason: s.reason + extra, todo: todo };
+  }
+
+  /* ---------- WhatsApp messages (Gefen can change the wording) ---------- */
+  function waNum(p) { p = String(p || ''); return p.charAt(0) === '0' ? '972' + p.slice(1) : p; }
+  function wa(p, text) { return 'https://wa.me/' + waNum(p) + '?text=' + encodeURIComponent(text); }
+  var MSG = {
+    hello: function (L) { return 'היי ' + first(L.name) + ', כאן גפן ארגון וסידור בתים 🌿'; },
+    video: function (L) { return 'היי ' + first(L.name) + ', כאן גפן ארגון וסידור בתים 🌿\nרק מזכירה: כדי שנוכל לתת לכם הצעת מחיר מדויקת, נשמח לסרטון קצר של הבית. אפשר לשלוח אותו כאן בוואטסאפ.'; },
+    quote: function (L) { return 'היי ' + first(L.name) + ', כאן גפן ארגון וסידור בתים 🌿\nרציתי לבדוק אם ראיתם את הצעת המחיר, ואם יש שאלות. נשמח לעזור.'; }
+  };
+
+  /* ---------- leads screen ---------- */
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function row(k, v) { return v == null || v === '' ? '' : '<dt>' + k + '</dt><dd>' + esc(v) + '</dd>'; }
+  function money(n) { return Math.round(n).toLocaleString('en-US') + ' ₪'; }
+  function inFilter(L, i) {
+    if (filter === 'closed') return i.cat === 'closed';
+    if (filter === 'todo') return i.cat === 'open' && (!!i.todo || (i.status === 'ok' && !L.quote));
+    return i.cat === 'open';
+  }
+  function renderLeads() {
+    var all = leads.map(function (L) { return { L: L, i: info(L) }; });
+    var n = { open: 0, todo: 0, closed: 0 };
+    all.forEach(function (x) {
+      if (x.i.cat === 'closed') n.closed++; else n.open++;
+      if (x.i.cat === 'open' && (x.i.todo || (x.i.status === 'ok' && !x.L.quote))) n.todo++;
+    });
+    $('#filters').innerHTML = [['open', 'פתוחות'], ['todo', 'לטיפול'], ['closed', 'נסגרו']].map(function (f) {
+      return '<button type="button" class="chip" data-f="' + f[0] + '" aria-pressed="' + (filter === f[0]) + '">' + f[1] + ' · ' + n[f[0]] + '</button>';
+    }).join('');
+
+    var shown = all.filter(function (x) { return inFilter(x.L, x.i); });
+    $('#list').innerHTML = shown.length ? shown.map(function (x) {
+      var what = [x.L.service, x.L.city, ago(x.L.created)].filter(Boolean).join(' · ');
+      var pill = x.i.todo ? '<span class="pill todo">' + x.i.todo + '</span>' : '<span class="pill ' + x.i.status + '">' + x.i.pill + '</span>';
+      return '<button type="button" class="item" data-id="' + esc(x.L.id) + '"' + (x.L.id === sel ? ' aria-current="true"' : '') + '><div><b>' + esc(x.L.name || 'בלי שם') + '</b><span class="what">' + esc(what) + '</span></div>' + pill + '</button>';
+    }).join('') : '<div class="empty"><span>אין כאן פניות כרגע.</span></div>';
+
+    var L = sel && byId[sel], card = $('#lead-card');
+    if (!L) {
+      card.innerHTML = '<div class="empty"><b>מחכה לפנייה…</b><span>כשמישהו עונה בצ\'אט באתר, הפרטים מופיעים כאן לבד.</span></div>';
+      return;
+    }
+    var i = info(L), move = L.kind === 'move';
+    var video = L.video ? 'נשלח בוואטסאפ' : (L.videoOpened ? 'פתחו וואטסאפ, כדאי לבדוק' : (L.video === false ? 'עוד לא' : ''));
+    var h = '<div class="head"><h3>' + esc(L.name || 'בלי שם') + '</h3><small>' + esc(ago(L.created)) + '</small></div>' +
+      '<div class="verdict ' + i.status + '"><b>' + i.title + '</b><span>' + esc(i.reason) + '</span></div>' +
+      (i.todo ? '<p class="todo">לטיפול: ' + i.todo + '</p>' : '') +
+      '<dl>' + (L.phone ? '<dt>טלפון</dt><dd><a href="tel:' + esc(L.phone) + '">' + esc(L.phone) + '</a></dd>' : '') +
+      row('שירות', L.service) + (L.materials == null || L.materials === '' ? '' : row('חומרי אריזה', L.materials ? 'רוצים הצעה' : 'לא צריכים')) +
+      row(move ? 'מאיפה לאן' : 'עיר', L.city) + row('מתי', L.when) + row('חדרים', L.size) + row('סרטון', video) +
+      (L.priceKey ? row('המחיר', L.priceKey === 'ok' ? 'מתאים להם' : 'יש להם שאלה') : '') +
+      row('שמעו עלייך', L.source) + row('ביקשו שיחה', L.wantsCall ? 'כן' : '') + row('כתבו', L.message) + row('הגיעו דרך', L.from) + '</dl>' +
+      (L.quote ? '<p class="sentline">הצעת מחיר נשלחה ' + esc(ago(L.quote.sentAt)) + ': ' + esc(money(L.quote.total || 0)) + '</p>' : '');
+    if (L.phone) {
+      h += '<div class="row"><a class="btn small" href="tel:' + esc(L.phone) + '">להתקשר</a><a class="btn small wa" target="_blank" rel="noopener" href="' + esc(wa(L.phone, MSG.hello(L))) + '">וואטסאפ</a>' +
+        (L.done && i.cat === 'open' ? '<button type="button" class="btn small ghost" id="mk-quote">' + (L.quote ? 'לעדכן הצעה' : 'הצעת מחיר') + '</button>' : '') + '</div>';
+      var r = [];
+      if (i.cat === 'open' && L.done && !L.video) r.push('<a class="btn small ghost" data-rem="video" target="_blank" rel="noopener" href="' + esc(wa(L.phone, MSG.video(L))) + '">תזכורת לסרטון' + (rems(L, 'video') ? ' (' + rems(L, 'video') + ')' : '') + '</a>');
+      if (i.cat === 'open' && L.quote) r.push('<a class="btn small ghost" data-rem="quote" target="_blank" rel="noopener" href="' + esc(wa(L.phone, MSG.quote(L))) + '">לשאול על ההצעה' + (rems(L, 'quote') ? ' (' + rems(L, 'quote') + ')' : '') + '</a>');
+      if (r.length) h += '<div class="row">' + r.join('') + '</div>';
+    }
+    h += '<div class="chips">' + (i.cat === 'closed'
+      ? '<button type="button" class="chip" data-status="">להחזיר לפתוחות</button>'
+      : '<button type="button" class="chip" data-status="won">נסגרה עבודה ✓</button><button type="button" class="chip" data-status="lost">לא רלוונטי</button>') + '</div>';
+    card.innerHTML = h;
+    var mq = $('#mk-quote'); if (mq) mq.addEventListener('click', function () { show('quote'); });
+  }
+  $('#filters').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-f]'); if (!b) return;
+    filter = b.dataset.f; render();
+  });
+  $('#list').addEventListener('click', function (e) {
+    var b = e.target.closest('button.item'); if (!b) return;
+    sel = b.dataset.id; render(); window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+  function ownerUpdate(L, o) {
+    o.action = 'owner'; o.id = L.id;
+    return post(o).then(function (j) {
+      if (j && j.ok && j.lead) { byId[L.id] = j.lead; leads = leads.map(function (x) { return x.id === L.id ? j.lead : x; }); render(); return true; }
+      if (j && j.error === 'key') gate('bad');
+      return false;
+    }).catch(function () { return false; });
+  }
+  $('#lead-card').addEventListener('click', function (e) {
+    var L = sel && byId[sel]; if (!L) return;
+    var rem = e.target.closest('[data-rem]');
+    if (rem) { ownerUpdate(L, { reminder: rem.dataset.rem }); return; }
+    var st = e.target.closest('[data-status]');
+    if (st) {
+      st.disabled = true;
+      ownerUpdate(L, { status: st.dataset.status }).then(function (ok) { if (!ok) { st.disabled = false; net('לא נשמר. בדקי את החיבור ונסי שוב.', true); } });
+    }
+  });
+
+  /* ---------- quote screen ---------- */
+  var q = { team: 2, hours: 5 };
+  try { $('#q-rate').value = localStorage.getItem(RATEK) || ''; } catch (e) {}
+  (function () { var d = new Date(Date.now() + 14 * DAY); $('#q-date').value = d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); })();
+  function fmtDate(v) { if (!v) return 'ייקבע'; var p = v.split('-'); return Number(p[2]) + '.' + Number(p[1]) + '.' + p[0]; }
+  function rate() { return Math.max(0, Number($('#q-rate').value) || 0); }
+  function teamTxt(n) { return n === 1 ? 'אשת צוות אחת' : n + ' נשות צוות'; }
+  function target() { var L = sel && byId[sel]; return L && L.done && L.phone && info(L).cat === 'open' ? L : null; }
+  function quoteLink(L) { return new URL('../q/?id=' + encodeURIComponent(L.id), location.href).href; }
+  function quoteText(L) {
+    return 'היי ' + first(L.name) + ', כאן גפן ארגון וסידור בתים 🌿\nהכנו לכם הצעת מחיר:\n' +
+      (L.service || '') + '\nתאריך: ' + fmtDate($('#q-date').value) + '\nצוות: ' + teamTxt(q.team) + ' · ' + q.hours + ' שעות\nסך הכול: ' +
+      money(rate() * q.team * q.hours) + '\nמינימום 5 שעות. התשלום בסיום העבודה.\n\nההצעה המלאה: ' + quoteLink(L);
+  }
+  var sentMsg = '';
+  function renderQuote() {
+    var open = leads.filter(function (L) { return L.done && L.phone && info(L).cat === 'open'; });
+    $('#pick-n').textContent = open.length ? open.length + ' פתוחות' : '';
+    $('#pick').innerHTML = open.length ? open.map(function (L) {
+      var what = [L.service, L.city].filter(Boolean).join(' · ');
+      var pill = L.quote ? '<span class="pill ok">נשלחה הצעה ✓</span>' : '<span class="pill ' + info(L).status + '">' + info(L).pill + '</span>';
+      return '<button type="button" class="item" data-id="' + esc(L.id) + '"' + (L.id === sel ? ' aria-current="true"' : '') + '><div><b>' + esc(L.name || 'בלי שם') + '</b><span class="what">' + esc(what) + '</span></div>' + pill + '</button>';
+    }).join('') : '<p class="empty">עוד אין לקוחות שסיימו לענות.</p>';
+    var L = target();
+    $('#q-team').textContent = q.team; $('#q-hours').textContent = q.hours;
+    $('#o-name').textContent = L ? L.name : '—';
+    $('#o-service').textContent = L ? L.service : '—';
+    $('#o-date').textContent = fmtDate($('#q-date').value);
+    $('#o-team').textContent = teamTxt(q.team) + ' · ' + q.hours + ' שעות';
+    $('#o-total').textContent = money(rate() * q.team * q.hours);
+    var a = $('#send-quote'), ready = L && rate() > 0;
+    a.textContent = L ? (L.quote ? 'לשלוח הצעה מעודכנת ל' : 'לשלוח בוואטסאפ ל') + first(L.name) : 'לשלוח בוואטסאפ';
+    if (ready) { a.href = wa(L.phone, quoteText(L)); a.removeAttribute('aria-disabled'); a.style.opacity = ''; }
+    else { a.removeAttribute('href'); a.setAttribute('aria-disabled', 'true'); a.style.opacity = '.5'; }
+    $('#sent').textContent = sentMsg || (!L ? (open.length ? 'בחרי למעלה למי לשלוח.' : 'כשמישהו יסיים לענות בצ\'אט, אפשר יהיה לשלוח לו הצעה מכאן.') : (!rate() ? 'כתבי מחיר לשעה כדי לשלוח.' : ''));
+  }
+  $('#pick').addEventListener('click', function (e) {
+    var b = e.target.closest('button.item'); if (!b) return;
+    sel = b.dataset.id; sentMsg = '';
+    var L = byId[sel];
+    if (L && L.quote) {
+      q.team = L.quote.team || q.team; q.hours = L.quote.hours || q.hours;
+      if (L.quote.date) $('#q-date').value = L.quote.date;
+      if (L.quote.rate) $('#q-rate').value = L.quote.rate;
+    }
+    render();
+  });
+  $$('[data-step]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var k = b.dataset.step, d = Number(b.dataset.d);
+      if (k === 'team') q.team = Math.min(10, Math.max(1, q.team + d));
+      if (k === 'hours') q.hours = Math.min(14, Math.max(5, q.hours + d));
+      sentMsg = ''; render();
+    });
+  });
+  ['q-date', 'q-rate'].forEach(function (id) {
+    $('#' + id).addEventListener('input', function () {
+      if (id === 'q-rate') { try { localStorage.setItem(RATEK, $('#q-rate').value); } catch (e) {} }
+      sentMsg = ''; render();
+    });
+  });
+  $('#send-quote').addEventListener('click', function (e) {
+    var L = target();
+    if (!L || !rate()) { e.preventDefault(); return; }
+    var o = { quote: { team: q.team, hours: q.hours, rate: rate(), date: $('#q-date').value } };
+    sentMsg = 'שומרת…'; $('#sent').textContent = sentMsg;
+    ownerUpdate(L, o).then(function (ok) {
+      sentMsg = ok ? 'נשמר ✓ ההצעה נפתחה בוואטסאפ. נשאר רק ללחוץ שם על שליחה.' : 'ההצעה נפתחה בוואטסאפ, אבל לא נשמרה ברשימה. בדקי את החיבור.';
+      render();
+    });
+  });
+
+  function render() { if (view === 'leads') renderLeads(); else renderQuote(); }
+
+  /* ---------- install tip ---------- */
+  var standalone = window.matchMedia && window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+  var tipSeen = false; try { tipSeen = !!localStorage.getItem(TIPK); } catch (e) {}
+  $('#install').hidden = standalone || tipSeen;
+  $('#install-x').addEventListener('click', function () { $('#install').hidden = true; try { localStorage.setItem(TIPK, '1'); } catch (e) {} });
+
+  /* ---------- boot ---------- */
+  if (!C.api) gate('api');
+  else if (!key) gate('key');
+  else { gate('key'); $('#gate-text').textContent = 'טוען…'; $('#gate-form').hidden = true; load(); }
+  setInterval(function () { if (!document.hidden) load(); }, 20000);
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) load(); });
+  setInterval(function () { if (!document.hidden && view === 'leads' && $('#gate').hidden) renderLeads(); }, 60000);
+})();
+</script>
+</body>
+</html>

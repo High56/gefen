@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>הצעת מחיר · גפן ארגון וסידור בתים</title>
+<link rel="icon" href="../logo.jpg">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700&family=Rubik:wght@500;700&display=swap">
+<link rel="stylesheet" href="../style.css">
+<style>
+main { padding-top: 24px; }
+.quote-head img { width: 72px; height: 72px; }
+.wa { background: #1f7a3a; color: #fff; }
+.center { text-align: center; color: var(--muted); padding: 30px 10px; }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <section id="loading"><p class="center">טוען את הצעת המחיר…</p></section>
+  <section id="missing" hidden>
+    <div class="card"><h3>לא מצאנו את ההצעה</h3><p class="sub">אפשר לכתוב לנו בוואטסאפ ונשלח שוב.</p>
+      <div class="row"><a class="btn wa" id="ask2" target="_blank" rel="noopener">לכתוב לגפן בוואטסאפ</a></div></div>
+  </section>
+  <section id="ok" hidden>
+    <div class="quote">
+      <div class="quote-head">
+        <img src="../logo.jpg" alt="הלוגו של גפן">
+        <div><b>הצעת מחיר</b><span>גפן ארגון וסידור בתים</span></div>
+      </div>
+      <div class="quote-body">
+        <div class="qline"><span>עבור</span><span id="o-name"></span></div>
+        <div class="qline"><span>שירות</span><span id="o-service"></span></div>
+        <div class="qline"><span>תאריך</span><span id="o-date"></span></div>
+        <div class="qline"><span>צוות</span><span id="o-team"></span></div>
+        <div class="total"><span>סך הכול</span><b id="o-total"></b></div>
+        <p class="terms">מינימום 5 שעות. התשלום בסיום העבודה: העברה בנקאית, ביט או פייבוקס.</p>
+        <p class="terms" id="o-sent"></p>
+      </div>
+    </div>
+    <div class="row">
+      <a class="btn wa" id="yes" target="_blank" rel="noopener">מאשרים את ההצעה</a>
+      <a class="btn ghost" id="ask" target="_blank" rel="noopener">יש לי שאלה</a>
+    </div>
+    <p class="note">התשובה נשלחת לגפן בוואטסאפ.</p>
+  </section>
+</main>
+<script src="../config.js"></script>
+<script>
+(function () {
+  var C = window.GEFEN || {};
+  var $ = function (s) { return document.querySelector(s); };
+  function wa(text) { return 'https://wa.me/' + C.whatsapp + '?text=' + encodeURIComponent(text); }
+  function fmtDate(v) { if (!v) return 'ייקבע'; var p = String(v).split('-'); return Number(p[2]) + '.' + Number(p[1]) + '.' + p[0]; }
+  function money(n) { return Math.round(n).toLocaleString('en-US') + ' ₪'; }
+  $('#ask2').href = wa('היי גפן, לא הצלחתי לפתוח את הצעת המחיר');
+  function missing() { $('#loading').hidden = true; $('#missing').hidden = false; }
+  var id = new URLSearchParams(location.search).get('id');
+  if (!id || !C.api) return missing();
+  fetch(C.api + '?' + new URLSearchParams({ action: 'quote', id: id }))
+    .then(function (r) { return r.json(); })
+    .then(function (j) {
+      if (!j || !j.ok || !j.quote) return missing();
+      var q = j.quote, team = Number(q.team) || 0;
+      $('#o-name').textContent = q.name;
+      $('#o-service').textContent = q.service;
+      $('#o-date').textContent = fmtDate(q.date);
+      $('#o-team').textContent = (team === 1 ? 'אשת צוות אחת' : team + ' נשות צוות') + ' · ' + q.hours + ' שעות';
+      $('#o-total').textContent = money(q.total || 0);
+      if (q.sentAt) $('#o-sent').textContent = 'ההצעה נשלחה ב־' + new Date(q.sentAt).toLocaleDateString('he-IL') + '.';
+      var who = q.name ? ' (' + q.name + ')' : '';
+      $('#yes').href = wa('היי גפן, מאשרים את הצעת המחיר לתאריך ' + fmtDate(q.date) + who + ' 🌿');
+      $('#ask').href = wa('היי גפן, יש לי שאלה על הצעת המחיר' + who + ':');
+      $('#loading').hidden = true; $('#ok').hidden = false;
+    })
+    .catch(missing);
+})();
+</script>
+</body>
+</html>

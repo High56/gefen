@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>גפן ארגון וסידור בתים · הצעת מחיר</title>
+<meta name="description" content="גפן ארגון וסידור בתים: אריזה ופריקה במעבר דירה, וסידור וארגון הבית. כמה שאלות קצרות, ונחזור אליכם עם הצעת מחיר.">
+<link rel="icon" href="logo.jpg">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700&family=Rubik:wght@500;700&display=swap">
+<link rel="stylesheet" href="style.css">
+<style>
+.log { min-height: 280px; }
+body.embed .top { display: none; }
+body.embed main { padding-top: 10px; }
+.callrow { display: flex; justify-content: center; }
+.call { background: none; border: 0; color: var(--accent); font-weight: 700; text-decoration: underline; padding: 8px; font-size: 15px; }
+a.choice { text-decoration: none; display: inline-block; }
+.wa { background: #1f7a3a; color: #fff; border-color: #1f7a3a; }
+.wa:hover { background: #1a6a32; }
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div class="wrap">
+    <div class="brand">
+      <img src="logo.jpg" alt="הלוגו של גפן">
+      <div class="name">גפן ארגון וסידור בתים</div>
+    </div>
+  </div>
+</div>
+
+<main class="wrap">
+  <section>
+    <div class="chat">
+      <div class="chat-head"><i>ג</i>גפן ארגון וסידור בתים</div>
+      <div class="log" id="log" aria-live="polite"></div>
+      <div class="choices" id="choices"></div>
+      <form class="say" id="say" hidden>
+        <input id="say-in" autocomplete="off" aria-label="התשובה שלכם">
+        <button class="btn" type="submit">שליחה</button>
+      </form>
+    </div>
+    <div class="callrow"><button type="button" class="call" id="call" hidden>📞 מעדיפים שגפן תתקשר אליכם?</button></div>
+    <p class="note">הפרטים נשמרים רק אצל גפן, ומשמשים כדי לחזור אליכם.</p>
+    <p class="note"><button type="button" class="linkbtn" id="restart">להתחיל מחדש</button></p>
+  </section>
+</main>
+
+<script src="config.js"></script>
+<script>
+(function () {
+  var C = window.GEFEN || {};
+  var $ = function (s) { return document.querySelector(s); };
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var params = new URLSearchParams(location.search);
+  if (params.get('embed')) document.body.classList.add('embed');
+  var KEY = 'gefen-chat';
+  var log = $('#log'), choices = $('#choices'), say = $('#say'), sayIn = $('#say-in');
+  var st = null, run = 0, sayHandler = null;
+
+  function rid() {
+    var a = new Uint8Array(16);
+    (window.crypto || window.msCrypto).getRandomValues(a);
+    return Array.prototype.map.call(a, function (b) { return (b % 36).toString(36); }).join('');
+  }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} }
+  function load() { try { return JSON.parse(localStorage.getItem(KEY)); } catch (e) { return null; } }
+  function first(n) { return String(n || '').trim().split(/\s+/)[0]; }
+  function wa(num, text) { return 'https://wa.me/' + num + '?text=' + encodeURIComponent(text); }
+
+  /* ---------- saving to Gefen's sheet: the whole lead each time, the latest wins ---------- */
+  var busy = false, dirty = false, retry = null;
+  function body() { return JSON.stringify({ action: 'lead', id: st.id, lead: st.lead }); }
+  function push() { dirty = true; flush(); }
+  function flush() {
+    if (!C.api || busy || !dirty || !st) return;
+    busy = true; dirty = false;
+    fetch(C.api, { method: 'POST', body: body() })
+      .then(function (r) { return r.json(); })
+      .then(function (j) { if (!j || !j.ok) throw new Error('not saved'); })
+      .catch(function () {
+        dirty = true;
+        clearTimeout(retry); retry = setTimeout(function () { retry = null; flush(); }, 5000);
+      })
+      .then(function () { busy = false; if (dirty && !retry) flush(); });
+  }
+  /* If the page is left (for example to send the video on WhatsApp), send what is pending right away. */
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden && dirty && C.api && st && navigator.sendBeacon) {
+      if (navigator.sendBeacon(C.api, body())) dirty = false;
+    }
+  });
+  window.addEventListener('online', flush);
+
+  /* ---------- the chat ---------- */
+  function scrollChat() {
+    var el = !say.hidden ? say : (choices.childElementCount ? choices : log.lastElementChild);
+    if (el && el.scrollIntoView) el.scrollIntoView({ block: 'nearest', behavior: reduce ? 'auto' : 'smooth' });
+  }
+  function draw(h) {
+    var el = document.createElement('div');
+    el.className = 'msg ' + h.s;
+    if (h.v) { var v = document.createElement('div'); v.className = 'video'; el.appendChild(v); }
+    else String(h.t).split(/(https:\/\/\S+)/).forEach(function (part, k) {
+      if (k % 2) { var a = document.createElement('a'); a.href = part; a.target = '_blank'; a.rel = 'noopener'; a.textContent = part; el.appendChild(a); }
+      else if (part) el.appendChild(document.createTextNode(part));
+    });
+    log.appendChild(el);
+  }
+  function add(side, text, video) {
+    var h = { s: side, t: text || '', v: !!video };
+    st.hist.push(h); save(); draw(h); scrollChat();
+  }
+  function bot(text, then) {
+    var my = run;
+    var tp = document.createElement('div'); tp.className = 'typing'; tp.innerHTML = '<i></i><i></i><i></i>';
+    log.appendChild(tp); scrollChat();
+    setTimeout(function () {
+      tp.remove();
+      if (my !== run) return;
+      add('in', text); if (then) then();
+    }, reduce ? 150 : 650);
+  }
+  function clearControls() { choices.innerHTML = ''; say.hidden = true; sayHandler = null; }
+  function buttons(list) {
+    choices.innerHTML = '';
+    list.forEach(function (o) {
+      var b = document.createElement(o.href ? 'a' : 'button');
+      b.className = 'choice' + (o.cls ? ' ' + o.cls : '');
+      if (o.href) { b.href = o.href; b.target = '_blank'; b.rel = 'noopener'; } else b.type = 'button';
+      b.textContent = o.label;
+      b.addEventListener('click', function () { o.go(); });
+      choices.appendChild(b);
+    });
+    scrollChat();
+  }
+  function textBox(type, hint, handler) {
+    choices.innerHTML = '';
+    sayIn.type = type === 'tel' ? 'tel' : 'text';
+    sayIn.inputMode = type === 'tel' ? 'tel' : 'text';
+    sayIn.autocomplete = type === 'tel' ? 'tel' : (type === 'name' ? 'name' : 'off');
+    sayIn.placeholder = hint || 'לכתוב כאן…';
+    sayIn.value = '';
+    say.hidden = false; sayHandler = handler; scrollChat();
+    try { sayIn.focus({ preventScroll: true }); } catch (e) {}
+  }
+  say.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var v = sayIn.value.trim();
+    if (v && sayHandler) sayHandler(v);
+  });
+
+  /* ---------- Gefen's questions, in her words ---------- */
+  var SERVICES = [
+    { label: 'אריזה לפני מעבר דירה', kind: 'move', pack: true },
+    { label: 'פריקה וסידור לאחר מעבר דירה', kind: 'move', pack: false },
+    { label: 'שירות אריזה ופריקה', kind: 'move', pack: true },
+    { label: 'סידור וארגון הבית', kind: 'org' },
+    { label: 'אחר', kind: 'other' }
+  ];
+  var WHEN = [
+    { label: 'בשבועיים הקרובים', v: 'soon' }, { label: 'בחודש הקרוב', v: 'month' },
+    { label: 'עוד אין תאריך', v: 'later' }, { label: 'אשמח לשוחח על התאריך', v: 'talk' }
+  ];
+  var SOURCES = ['פייסבוק', 'אינסטגרם', 'המלצה של חברה', 'מדרג', 'גוגל', 'ChatGPT', 'אחר'];
+  function find(list, label) { return list.filter(function (x) { return x.label === label; })[0]; }
+  function isMove() { return st.lead.kind === 'move'; }
+  function phoneOf(v) {
+    var d = String(v).replace(/[\s\-().]/g, '');
+    if (/^\+?972/.test(d)) d = '0' + d.replace(/^\+?972/, '');
+    return /^(05\d{8}|07\d{8}|0[23489]\d{7})$/.test(d) ? d : '';
+  }
+
+  var STEPS = {
+    name: { type: 'name', ask: 'איך קוראים לכם?', hint: 'שם',
+      take: function (v) { st.lead.name = v.slice(0, 60); return 'phone'; } },
+    phone: { type: 'tel', ask: function () { return 'נעים מאוד ' + first(st.lead.name) + '! מה מספר הטלפון? כך נוכל לחזור אליכם.'; }, hint: 'למשל: 050-1234567',
+      check: function (v) { return phoneOf(v) ? '' : 'המספר לא נראה תקין. אפשר לבדוק ולכתוב שוב?'; },
+      take: function (v) { st.lead.phone = phoneOf(v); return 'service'; } },
+    service: { type: 'buttons', ask: 'במה נוכל לעזור?', opts: function () { return SERVICES.map(function (s) { return s.label; }); },
+      take: function (v) { var s = find(SERVICES, v); st.lead.service = v; st.lead.kind = s.kind; return s.pack ? 'materials' : 'city'; } },
+    materials: { type: 'buttons', ask: 'תרצו גם הצעת מחיר לחומרי אריזה, עם משלוח עד הבית?\nקרטונים, דבקים, ניירות אריזה ופצפצים.',
+      opts: function () { return ['כן, אשמח', 'לא, תודה']; },
+      take: function (v) { st.lead.materials = v === 'כן, אשמח'; return 'city'; } },
+    city: { type: 'text', ask: 'באיזו עיר? (במעבר דירה: מאיפה לאן)',
+      hint: function () { return isMove() ? 'למשל: מרעננה לכפר סבא' : 'למשל: חולון'; },
+      take: function (v) { st.lead.city = v.slice(0, 120); return 'when'; } },
+    when: { type: 'buttons', ask: 'למתי צריך את השירות?', opts: function () { return WHEN.map(function (w) { return w.label; }); },
+      take: function (v) { st.lead.when = v; st.lead.whenKey = find(WHEN, v).v; return 'size'; } },
+    size: { type: 'text', ask: function () { return isMove() ? 'כמה חדרים יש בבית לארוז, וכמה לפרוק?' : 'כמה חדרים צריך לסדר?'; },
+      hint: function () { return isMove() ? 'למשל: 4 חדרים לארוז, 3 לפרוק' : 'למשל: 2 חדרים ומטבח'; },
+      take: function (v) { st.lead.size = v.slice(0, 120); return 'video'; } },
+    video: { type: 'video',
+      ask: function () {
+        return 'כדי שנדע כמה צוות צריך, שלחו בבקשה סרטון קצר של הבית.\nפשוט לעבור חדר חדר, לפתוח את הארונות והמגירות, ולצלם את כל התכולה' +
+          (isMove() ? ' שנארזת לבית החדש.' : '.') + '\nאת הסרטון שולחים לגפן בוואטסאפ, בכפתור כאן למטה.';
+      },
+      take: function (v) { st.lead.video = v === 'sent'; return 'price'; } },
+    price: { type: 'buttons', ask: 'חשוב לדעת: המחיר נקבע לפי שעות העבודה ומספר נשות הצוות. המינימום הוא 5 שעות עבודה. מתאים לכם?',
+      opts: function () { return ['מתאים', 'יש לי שאלה']; },
+      take: function (v) { st.lead.priceKey = v === 'מתאים' ? 'ok' : 'question'; return 'source'; } },
+    source: { type: 'buttons', ask: 'ושאלה אחרונה: איך שמעתם עלינו?', opts: function () { return SOURCES; },
+      take: function (v) { st.lead.source = v; return 'end'; } }
+  };
+  function val(x) { return typeof x === 'function' ? x() : x; }
+
+  function answer(key, v, shown, video) {
+    var S = STEPS[key];
+    clearControls();
+    add('out', shown || v, video);
+    var next = S.take(v);
+    push(); syncCall();
+    if (next === 'end') finish(); else ask(next);
+  }
+  function ask(key) {
+    st.step = key; st.asked = ''; save();
+    bot(val(STEPS[key].ask), function () { st.asked = key; save(); controls(key); });
+  }
+  function controls(key) {
+    var S = STEPS[key];
+    if (S.type === 'buttons') {
+      buttons(S.opts().map(function (o) { return { label: o, go: function () { answer(key, o); } }; }));
+    } else if (S.type === 'video') {
+      var text = 'היי גפן, זה הסרטון של ' + (st.lead.name || '') + ' להצעת מחיר 🎥';
+      buttons([
+        { label: '🎥 לשליחת הסרטון בוואטסאפ', cls: 'wa', href: wa(C.whatsapp, text), go: function () {
+          st.lead.videoOpened = true; push();
+          setTimeout(function () {
+            buttons([
+              { label: 'שלחתי ✓', go: function () { answer('video', 'sent', 'שלחתי את הסרטון ✓', true); } },
+              { label: 'אשלח אחר כך', go: function () { answer('video', 'later', 'אשלח אחר כך'); } }
+            ]);
+          }, 300);
+        } },
+        { label: 'אשלח אחר כך', go: function () { answer('video', 'later', 'אשלח אחר כך'); } }
+      ]);
+    } else {
+      textBox(S.type, val(S.hint), function (v) {
+        var bad = S.check ? S.check(v) : '';
+        if (bad) { add('in', bad); scrollChat(); return; }
+        answer(key, v);
+      });
+    }
+  }
+  var CLOSING = 'תודה! העברנו את כל הפרטים, ונחזור אליכם בהקדם עם הצעת מחיר.\nרוצים לדבר עם מישהי מהצוות? כתבו "שיחה" ונתקשר אליכם.\n\nמוזמנים להיכנס ולהתרשם 🌸\n' + (C.card || '');
+  function finish() {
+    st.lead.done = true; st.step = 'end'; st.asked = ''; push(); save();
+    bot(CLOSING.trim(), function () { st.asked = 'end'; save(); endControls(); });
+  }
+  function endControls() {
+    if (st.lead.wantsCall) return clearControls();
+    textBox('text', 'כתבו "שיחה"', function (v) {
+      if (/שיחה|תתקשר|להתקשר|טלפון/.test(v)) {
+        clearControls(); add('out', v);
+        st.lead.wantsCall = true; push(); syncCall();
+        bot('מעולה, גפן תתקשר אליכם בהקדם 🌿');
+      } else {
+        clearControls(); add('out', v);
+        st.lead.message = ((st.lead.message ? st.lead.message + ' / ' : '') + v).slice(0, 280); push();
+        bot('תודה! גפן תראה את ההודעה ותחזור אליכם 🌿', endControls);
+      }
+    });
+  }
+
+  /* People can ask for a call at any point once we have their number. */
+  function syncCall() { $('#call').hidden = !(st && st.lead.phone && !st.lead.wantsCall && st.step !== 'end'); }
+  $('#call').addEventListener('click', function () {
+    st.lead.wantsCall = true; push(); syncCall();
+    add('out', 'מעדיפים שגפן תתקשר');
+    bot('בטח! גפן תתקשר אליכם בהקדם 🌿\nאם יש לכם עוד דקה, אפשר להמשיך לענות כאן. זה יעזור לה להכין הצעת מחיר.');
+  });
+
+  function start(preset) {
+    run++;
+    st = { id: rid(), lead: {}, hist: [], step: '', asked: '' };
+    if (preset.name) st.lead.name = preset.name;
+    if (preset.phone) st.lead.phone = preset.phone;
+    st.lead.from = preset.from;
+    log.innerHTML = ''; clearControls(); save(); syncCall();
+    var hello = st.lead.name
+      ? 'היי ' + first(st.lead.name) + ', כאן העוזרת הדיגיטלית של גפן ארגון וסידור בתים 🌿\nקיבלנו את הפנייה שלכם. כמה שאלות קצרות, וכך נוכל לחזור אליכם עם הצעת מחיר מדויקת.'
+      : 'היי, כאן העוזרת הדיגיטלית של גפן ארגון וסידור בתים 🌿\nכמה שאלות קצרות, וכך נוכל לחזור אליכם עם הצעת מחיר מדויקת.';
+    var firstStep = !st.lead.name ? 'name' : (!st.lead.phone ? 'phone' : 'service');
+    st.step = firstStep;
+    bot(hello, function () { ask(firstStep); });
+  }
+
+  var preset = {
+    name: (params.get('name') || '').trim().slice(0, 60),
+    phone: phoneOf(params.get('phone') || ''),
+    from: (params.get('src') || '').slice(0, 60) || (function () {
+      try { var h = new URL(document.referrer).hostname; return h && h !== location.hostname ? h : ''; } catch (e) { return ''; }
+    })() || 'קישור ישיר'
+  };
+  $('#restart').addEventListener('click', function () { start({ from: preset.from }); });
+
+  /* ---------- boot: continue an unfinished conversation, or start a new one ---------- */
+  var saved = load();
+  var fresh = preset.name && (!saved || !saved.lead || saved.lead.name !== preset.name);
+  if (saved && saved.id && saved.hist && saved.hist.length && !fresh) {
+    st = saved;
+    st.hist.forEach(draw);
+    syncCall();
+    if (st.step === 'end') { if (st.asked === 'end') endControls(); else finish(); }
+    else if (STEPS[st.step]) { if (st.asked === st.step) controls(st.step); else ask(st.step); }
+    scrollChat();
+    dirty = true; flush();
+  } else start(preset);
+})();
+</script>
+</body>
+</html>
