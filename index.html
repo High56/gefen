@@ -42,7 +42,7 @@ a.choice { text-decoration: none; display: inline-block; }
       </form>
     </div>
     <div class="callrow"><button type="button" class="call" id="call" hidden>📞 מעדיפים שגפן תתקשר אליכם?</button></div>
-    <p class="note">הפרטים נשמרים רק אצל גפן, ומשמשים כדי לחזור אליכם.</p>
+    <p class="note">הפרטים נשמרים רק אצל גפן, ומשמשים כדי לחזור אליכם. <a id="privacy" href="https://high56.github.io/gefen-site/pratiut/" target="_blank" rel="noopener">מדיניות פרטיות</a></p>
     <p class="note"><button type="button" class="linkbtn" id="restart">להתחיל מחדש</button></p>
   </section>
 </main>
@@ -55,6 +55,7 @@ a.choice { text-decoration: none; display: inline-block; }
   var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var params = new URLSearchParams(location.search);
   if (params.get('embed')) document.body.classList.add('embed');
+  if (C.privacy) $('#privacy').href = C.privacy;
   var KEY = 'gefen-chat';
   var log = $('#log'), choices = $('#choices'), say = $('#say'), sayIn = $('#say-in');
   var st = null, run = 0, sayHandler = null;
