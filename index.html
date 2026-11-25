@@ -190,7 +190,7 @@ a.choice { text-decoration: none; display: inline-block; }
       take: function (v) { st.lead.when = v; st.lead.whenKey = find(WHEN, v).v; return 'size'; } },
     size: { type: 'text', ask: function () { return isMove() ? 'כמה חדרים יש בבית לארוז, וכמה לפרוק?' : 'כמה חדרים צריך לסדר?'; },
       hint: function () { return isMove() ? 'למשל: 4 חדרים לארוז, 3 לפרוק' : 'למשל: 2 חדרים ומטבח'; },
-      take: function (v) { st.lead.size = v.slice(0, 120); return 'video'; } },
+      take: function (v) { st.lead.size = v.slice(0, 120); return 'price'; } },
     video: { type: 'video',
       ask: function () {
         return 'כדי שנדע כמה צוות צריך, שלחו בבקשה סרטון קצר של הבית.\nפשוט לעבור חדר חדר, לפתוח את הארונות והמגירות, ולצלם את כל התכולה' +
@@ -243,28 +243,33 @@ a.choice { text-decoration: none; display: inline-block; }
       });
     }
   }
-  var CLOSING = 'תודה! העברנו את כל הפרטים, ונחזור אליכם בהקדם עם הצעת מחיר.\nרוצים לדבר עם מישהי מהצוות? כתבו "שיחה" ונתקשר אליכם.\n\nמוזמנים להיכנס ולהתרשם 🌸\n' + (C.card || '');
+  /* The end: everything they answered goes to Gefen in one WhatsApp message, and a person takes it from there. */
+  function summary() {
+    var L = st.lead, lines = [/^site/.test(L.from || '') ? 'היי גפן, פנייה מהאתר להצעת מחיר 🌿' : 'היי גפן, פנייה להצעת מחיר 🌿'];
+    var row = function (k, v) { if (v) lines.push(k + ': ' + v); };
+    row('שם', L.name); row('טלפון', L.phone); row('שירות', L.service);
+    if (L.materials) row('חומרי אריזה', 'כן, אשמח להצעה');
+    row('עיר', L.city); row('מתי', L.when); row('גודל', L.size);
+    if (L.priceKey) row('מחיר', L.priceKey === 'ok' ? 'מתאים לי' : 'יש לי שאלה');
+    row('איך שמעתי עליכם', L.source);
+    lines.push('', 'אשלח כאן סרטון של הבית 🎥');
+    return lines.join('\n');
+  }
   function finish() {
     st.lead.done = true; st.step = 'end'; st.asked = ''; push(); save();
-    bot(CLOSING.trim(), function () { st.asked = 'end'; save(); endControls(); });
+    var closing = 'תודה ' + first(st.lead.name) + '! 🌿\nעוד צעד אחד: לחצו על הכפתור, וכל הפרטים יעברו לגפן בוואטסאפ.\n' +
+      'באותה שיחה צרפו סרטון קצר של הבית: עוברים חדר חדר ופותחים ארונות ומגירות' + (isMove() ? ', כולל כל מה שנארז לבית החדש' : '') + '.\n' +
+      'מישהי מהצוות תמשיך איתכם משם עם הצעת מחיר.';
+    bot(closing, function () { st.asked = 'end'; save(); endControls(); });
   }
   function endControls() {
-    if (st.lead.wantsCall) return clearControls();
-    textBox('text', 'כתבו "שיחה"', function (v) {
-      if (/שיחה|תתקשר|להתקשר|טלפון/.test(v)) {
-        clearControls(); add('out', v);
-        st.lead.wantsCall = true; push(); syncCall();
-        bot('מעולה, גפן תתקשר אליכם בהקדם 🌿');
-      } else {
-        clearControls(); add('out', v);
-        st.lead.message = ((st.lead.message ? st.lead.message + ' / ' : '') + v).slice(0, 280); push();
-        bot('תודה! גפן תראה את ההודעה ותחזור אליכם 🌿', endControls);
-      }
-    });
+    buttons([{ label: '💬 להמשך בוואטסאפ עם גפן', cls: 'wa', href: wa(C.whatsapp, summary()), go: function () {
+      st.lead.waOpened = true; push(); save();
+    } }]);
   }
 
   /* People can ask for a call at any point once we have their number. */
-  function syncCall() { $('#call').hidden = !(st && st.lead.phone && !st.lead.wantsCall && st.step !== 'end'); }
+  function syncCall() { $('#call').hidden = !(C.api && st && st.lead.phone && !st.lead.wantsCall && st.step !== 'end'); }
   $('#call').addEventListener('click', function () {
     st.lead.wantsCall = true; push(); syncCall();
     add('out', 'מעדיפים שגפן תתקשר');
